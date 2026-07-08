@@ -139,9 +139,70 @@ erDiagram
 
 ---
 
-## 🗺️ 4. Diagram Alur Logika Lengkap (9 Flowcharts)
+## 🗺️ 4. Peta Arsitektur Logika Sistem (Overview & Flowcharts)
 
-Bagian ini menyajikan 9 diagram alur logika utama yang memetakan seluruh sistem NAYAKA (baik sisi User, Admin, maupun Server):
+Bagian ini menyajikan peta hubungan alur (overview) antar-proses dalam ekosistem NAYAKA, diikuti oleh 9 diagram alur logika detail yang memetakan aktivitas User, Admin, dan Server secara mendalam.
+
+### 🗺️ A. Overview: Peta Alur Hubungan Antar-Proses
+```mermaid
+graph TD
+    %% Styling node
+    classDef admin fill:#F59E0B,stroke:#D97706,stroke-width:2px,color:#fff;
+    classDef user fill:#2563EB,stroke:#1D4ED8,stroke-width:2px,color:#fff;
+    classDef system fill:#10B981,stroke:#059669,stroke-width:2px,color:#fff;
+
+    %% 1. Onboarding & Account Management
+    subgraph Onboarding ["1. Pendaftaran dan Autentikasi"]
+        Reg["Registrasi oleh Admin (Diagram 6)"]:::admin --> Login{"Login Pertama? (Diagram 1)"}:::user
+        Login -- Ya --> GantiPass["Wajib Ganti Password (Diagram 1)"]:::user
+        Login -- Tidak --> Dashboard["Dashboard Utama NAYAKA"]:::user
+        GantiPass --> Dashboard
+        Forgot["Lupa Password (Diagram 2)"]:::user -. OTP/SMS .-> Dashboard
+    end
+
+    %% 2. Daily Activities
+    subgraph DailyActivity ["2. Menu dan Aktivitas Utama"]
+        Dashboard --> ChooseAction{"Pilih Menu?"}:::user
+        
+        %% Path Absensi
+        ChooseAction --> |Absensi Harian| Absen["Absensi QR (Diagram 3)"]:::user
+        Absen --> WifiCheck{"Cek WiFi dan GPS Radius"}:::system
+        WifiCheck -- Lolos --> PresenceOk["Presensi Tercatat (Hadir)"]:::system
+        
+        %% Path Izin Tanpa Tracking
+        ChooseAction --> |Izin Ketidakhadiran| IzinSakit["Izin Ketidakhadiran (Diagram 7)"]:::user
+        IzinSakit --> UploadBukti["Unggah Bukti dan Submit"]:::user
+        UploadBukti --> AdminReview1["Review dan Approval Admin (Diagram 8)"]:::admin
+        AdminReview1 -- Disetujui --> RekapOk["Rekap Kehadiran Terupdate"]:::system
+        
+        %% Path Izin Outing dengan Tracking
+        ChooseAction --> |Izin Keluar Sementara| IzinOuting["Izin Istirahat/Jalan (Diagram 4)"]:::user
+        IzinOuting --> AdminReview2["Review dan Approval Admin (Diagram 8)"]:::admin
+    end
+
+    %% 3. GPS Tracking Cycle
+    subgraph TrackingSession ["3. Pelacakan dan Siklus GPS"]
+        AdminReview2 -- Disetujui --> SelectDuration["Pilih Durasi dan Setujui GPS (Diagram 4)"]:::user
+        SelectDuration --> LiveTrack["Mulai Tracking GPS (Diagram 4 / 5)"]:::system
+        LiveTrack --> AdminMonitor["Live Monitoring Admin (Diagram 9)"]:::admin
+        LiveTrack --> TimeCheck{"Cek Sisa Waktu dan Countdown"}:::system
+        
+        %% Normal Completion
+        TimeCheck -- Kembali Sebelum Selesai --> ScanReturn["Scan QR dan Foto Kembali (Diagram 4)"]:::user
+        ScanReturn --> Completed["Status COMPLETED (Selesai Tracking)"]:::system
+        
+        %% Overdue & Escalation
+        TimeCheck -- Durasi Habis --> Overdue["Status OVERDUE dan Eskalasi (Diagram 5 / 9)"]:::system
+        Overdue --> ContactUser["Hubungi Pegawai / Tutup Manual"]:::admin
+        ContactUser --> Completed
+    end
+```
+
+---
+
+### 🗺️ B. Diagram Alur Detail (9 Flowcharts)
+
+Berikut adalah 9 diagram alur logika detail yang memetakan aktivitas sistem NAYAKA secara spesifik:
 
 ### 1. Diagram Alur: Login & Ganti Password
 ```mermaid
