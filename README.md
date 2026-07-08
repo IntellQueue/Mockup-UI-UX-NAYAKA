@@ -139,52 +139,193 @@ erDiagram
 
 ---
 
-## 🗺️ 4. Diagram Alur Logika (Flowcharts)
+## 🗺️ 4. Diagram Alur Logika Lengkap (9 Flowcharts)
 
-### A. Alur Verifikasi Geofence Presensi
+Bagian ini menyajikan 9 diagram alur logika utama yang memetakan seluruh sistem NAYAKA (baik sisi User, Admin, maupun Server):
+
+### 1. Diagram Alur: Login & Ganti Password
 ```mermaid
 graph TD
-    Start([Mulai Absen]) --> Login[Input NRP & Password]
-    Login --> ChkPass{Password Valid?}
-    ChkPass -- Tidak --> ErrPass[Tampilkan: Password Salah]
-    ChkPass -- Ya --> DevID[Deteksi Hardware ID]
-    DevID --> ChkStatus{Status User NEW?}
-    ChkStatus -- Ya --> ChangePass[Wajib Ganti Password]
-    ChangePass --> SavePass[Simpan & Set ACTIVE]
-    SavePass --> Dashboard
-    ChkStatus -- Tidak --> Dashboard[Dashboard Utama]
-    
-    Dashboard --> ClickPresensi[Klik Presensi QR]
-    ClickPresensi --> ChkWifi{Terhubung WiFi Kantor?}
-    ChkWifi -- Tidak --> BlockWifi[Ditolak: Hubungkan WiFi Kantor]
-    ChkWifi -- Ya --> ChkGPS{Koordinat GPS dalam Radius?}
-    ChkGPS -- Tidak --> BlockGPS[Ditolak: Di Luar Geofence]
-    ChkGPS -- Ya --> ChkMock{Fake GPS Terdeteksi?}
-    ChkMock -- Ya --> BlockMock[Ditolak: Mock GPS Terdeteksi]
-    ChkMock -- Tidak --> Success[Ambil Foto & Catat Absensi Sukses]
+    Start([Mulai]) --> Input[Input NRP & Password]
+    Input --> Valid{NRP & Password valid?}
+    Valid -- Tidak --> Err[Tampilkan pesan error]
+    Err --> Input
+    Valid -- Ya --> LogDevice[Catat device_id ke Device Log]
+    LogDevice --> Default{Password masih default?}
+    Default -- Ya --> ForceInput[Paksa input password baru]
+    ForceInput --> Policy{Password baru valid & sesuai kebijakan?}
+    Policy -- Tidak --> ForceInput
+    Policy -- Ya --> Save[Simpan password baru]
+    Save --> Home[Masuk ke Home]
+    Default -- Tidak --> Home
 ```
 
-### B. Siklus Izin Keluar Kantor (Outing Tracking)
+### 2. Diagram Alur: Lupa Password
 ```mermaid
 graph TD
-    StartOuting([Pengajuan Izin Keluar]) --> InputForm[Input Tujuan & Durasi]
-    InputForm --> CheckAcc{Persetujuan Komandan?}
-    CheckAcc -- Ditolak --> RejectOut[Izin Ditolak & Selesai]
-    CheckAcc -- Disetujui --> ActiveOut[Izin Aktif & GPS Live Mulai]
-    
-    ActiveOut --> Track[Kirim Koordinat GPS Berkala]
-    Track --> ChkTime{Sisa Waktu <= 15m/10m/5m/1m?}
-    ChkTime -- Ya --> SendAlert[Kirim Notifikasi Peringatan di HP]
-    ChkTime -- Tidak --> Wait[Tunggu Sesi Selesai]
-    
-    SendAlert --> ReturnOffice[Kembali ke Kantor & Hubungkan WiFi]
-    Wait --> ReturnOffice
-    
-    ReturnOffice --> ClickReturn[Klik Konfirmasi Kembali]
-    ClickReturn --> AdminVerify{Verifikasi Komandan?}
-    AdminVerify -- Tidak ACC --> ReturnOffice
-    AdminVerify -- ACC --> Done[Status COMPLETED & Terhitung Hadir]
+    Start([Mulai]) --> Input[Input NRP]
+    Input --> Reg{NRP terdaftar?}
+    Reg -- Tidak --> Err[Tampilkan error]
+    Err --> End([Selesai])
+    Reg -- Ya --> OTP[Kirim OTP ke no. HP terdaftar <br><i>[ASUMSI]</i>]
+    OTP --> InputOTP[Input OTP]
+    InputOTP --> OTPValid{OTP valid?}
+    OTPValid -- Tidak --> InputOTP
+    OTPValid -- Ya --> InputNew[Input password baru]
+    InputNew --> Save[Simpan password baru]
+    Save --> End
 ```
+
+### 3. Diagram Alur: Absensi QR
+```mermaid
+graph TD
+    Start([Mulai Absensi]) --> Wifi{Terhubung WiFi gedung -<br>BSSID cocok?}
+    Wifi -- Tidak --> RejectWifi[Tolak: harus di area gedung]
+    RejectWifi --> End([Selesai])
+    Wifi -- Ya --> Scan[Scan QR Code <br><i>(rotating)</i>]
+    Scan --> QRValid{QR valid &<br>belum expired?}
+    QRValid -- Tidak --> RejectQR[Tolak: QR tidak valid / kadaluarsa]
+    RejectQR --> End
+    QRValid -- Ya --> Liveness[Ambil foto <br><i>(liveness check)</i>]
+    Liveness --> Attest{Foto & device<br>attestation lolos?}
+    Attest -- Tidak --> RejectAttest[Tolak: gagal verifikasi <br><i>(cek batas retry)</i>]
+    RejectAttest --> End
+    Attest -- Ya --> Save[Simpan data absensi:<br>foto, GPS, timestamp, BSSID]
+    Save --> End
+```
+
+### 4. Diagram Alur: Izin Istirahat-Jalan (dengan Tracking GPS)
+```mermaid
+graph TD
+    Start([Mulai]) --> Form[Isi form izin: jenis, keterangan,<br>bukti foto/PDF]
+    Form --> Send[Kirim ke Admin]
+    Send --> Approve{Admin approve?}
+    Approve -- Tidak --> NotifReject[Notifikasi ditolak ke user]
+    NotifReject --> End([Selesai])
+    Approve -- Ya --> ChooseDur[User pilih durasi<br><i>(kelipatan 30 menit s.d. 3 jam)</i>]
+    ChooseDur --> Consent[User setujui GPS always-on]
+    Consent --> StartTrack[Mulai tracking GPS kontinu]
+    StartTrack --> CheckTime{Sisa waktu = 15/10/5/1 menit?<br><i>(server-side scheduler)</i>}
+    CheckTime -- Ya --> SendCountdown[Kirim notifikasi countdown]
+    SendCountdown --> CheckReturn
+    CheckTime -- Tidak / belum waktunya --> CheckReturn{User sudah kembali ke gedung?}
+    CheckReturn -- Ya, sebelum durasi habis --> RequestApproval[User request approval kembali]
+    RequestApproval --> ScanReturn[Scan QR + foto bukti kembali<br><i>(sama seperti absensi)</i>]
+    ScanReturn --> Verify{Verifikasi lolos?}
+    Verify -- Tidak --> ScanReturn
+    Verify -- Ya --> Completed[Status: Completed, stop tracking]
+    Completed --> End
+    CheckReturn -- Tidak, durasi habis --> Overdue[Durasi habis, belum kembali]
+    Overdue --> StatusOverdue[Status: Overdue +<br>Eskalasi alert ke admin <i>[ASUMSI]</i>]
+    StatusOverdue --> End
+```
+
+### 5. Diagram State: Siklus Izin
+```mermaid
+stateDiagram-v2
+    [*] --> Diajukan
+    Diajukan --> Ditolak : admin reject
+    Ditolak --> [*]
+    Diajukan --> Disetujui : admin approve
+    Disetujui --> Tracking_Aktif : user pilih durasi, GPS always-on disetujui
+    
+    state Tracking_Aktif {
+        [*] --> Tracking
+        Tracking --> Tracking : notifikasi countdown 15/10/5/1 menit
+    }
+    
+    Tracking_Aktif --> GPS_Terputus : user cabut izin lokasi
+    GPS_Terputus --> Tracking_Aktif : user aktifkan lagi sebelum durasi habis
+    GPS_Terputus --> Dieskalasi : tidak diaktifkan lagi [ASUMSI: eskalasi langsung]
+    
+    Tracking_Aktif --> Menunggu_Verifikasi : user request kembali, sebelum durasi habis
+    Menunggu_Verifikasi --> Menunggu_Verifikasi : verifikasi gagal (retry)
+    Menunggu_Verifikasi --> Selesai : verifikasi lolos
+    
+    Tracking_Aktif --> Overdue : durasi habis, belum request kembali
+    Overdue --> Dieskalasi : alert dikirim ke admin
+    
+    Dieskalasi --> Ditutup_Manual : admin tutup manual dengan keterangan
+    Ditutup_Manual --> [*]
+    Selesai --> [*]
+```
+
+### 6. Diagram Alur: Registrasi User oleh Admin
+```mermaid
+graph TD
+    Start([Mulai]) --> Input[Admin input data: NRP, Nama KTP,<br>Nama Kesatuan, Alamat, No. HP]
+    Input --> Reg{NRP sudah terdaftar?}
+    Reg -- Ya --> ErrReg[Tampilkan error: NRP duplikat]
+    ErrReg --> Input
+    Reg -- Tidak --> ValidateHP{Validasi format No. HP &<br>kelengkapan data?}
+    ValidateHP -- Tidak valid --> ErrValidate[Tampilkan error field tidak valid]
+    ErrValidate --> Input
+    ValidateHP -- Valid --> GeneratePass[Generate password default acak<br><i>[FIX: mencegah predictable password]</i>]
+    GeneratePass --> Save[Simpan data user ke database<br>set is_default_password = true]
+    Save --> SendSMS[Kirim NRP + password default<br>ke No. HP terdaftar (SMS)<br><i>[ASUMSI: metode distribusi kredensial]</i>]
+    SendSMS --> End([Selesai])
+```
+
+### 7. Diagram Alur: Izin Ketidakhadiran (Tanpa Tracking)
+```mermaid
+graph TD
+    Start([Mulai]) --> Choose[Pilih jenis: Sakit / Izin / Musibah]
+    Choose --> Fill[Isi keterangan & rentang tanggal]
+    Fill --> Upload[Unggah bukti foto / PDF]
+    Upload --> Proof{Bukti wajib & terisi?}
+    Proof -- Tidak --> ErrProof[Tampilkan error: bukti wajib diisi]
+    ErrProof --> Upload
+    Proof -- Ya --> Send[Kirim ke Admin]
+    Send --> Approve{Admin approve?}
+    Approve -- Tidak --> Reject[Reject + input alasan wajib]
+    Reject --> End([Selesai])
+    Approve -- Ya --> Save[Catat: Disetujui — Tanpa Tracking<br>Update rekap kehadiran]
+    Save --> End
+```
+
+### 8. Diagram Alur: Admin - Review Keputusan Izin
+```mermaid
+graph TD
+    Start([Mulai - Admin buka daftar pengajuan pending]) --> Choose[Pilih satu pengajuan, lihat detail & bukti]
+    Choose --> Type{Jenis = Ketidakhadiran<br>sakit/izin/musibah?}
+    Type -- Ya --> ShowAbsence[Tampilkan opsi: Approve / Reject<br><i>(tanpa setting durasi)</i>]
+    Type -- Tidak --> ShowOuting[Tampilkan opsi: Approve / Reject<br><i>(approve = user boleh pilih durasi)</i>]
+    ShowAbsence --> Decide[Admin pilih keputusan]
+    ShowOuting --> Decide
+    Decide --> Reject{Reject?}
+    Reject -- Ya --> InputReject[Input alasan penolakan <br><i>(wajib)</i>]
+    Reject -- No --> InputApprove[Input catatan <br><i>(opsional)</i>]
+    InputReject --> Save[Simpan keputusan, kirim notifikasi ke user]
+    InputApprove --> Save
+    Save --> End([Selesai])
+```
+
+### 9. Diagram Alur: Admin - Monitoring Tracking GPS
+```mermaid
+graph TD
+    Start([Mulai - Admin buka menu Monitoring]) --> ShowList[Tampilkan daftar user berstatus<br>'Tracking Aktif']
+    ShowList --> Select[Admin pilih salah satu user]
+    Select --> ShowDetails[Tampilkan peta lokasi terakhir,<br>waktu update, sisa durasi]
+    ShowDetails --> Overdue{Sisa durasi = 0 &<br>belum ada bukti kembali?}
+    Overdue -- Tidak --> Refresh[Auto-refresh berkala,<br>tetap di layar monitoring]
+    Refresh --> ShowDetails
+    Overdue -- Ya --> Highlight[Highlight sebagai 'Overdue'.<br>Tampilkan aksi: Hubungi user / Tutup manual]
+    Highlight --> ManualClose{Admin pilih 'Tutup manual'?}
+    ManualClose -- Tidak --> ShowList
+    ManualClose -- Ya --> InputNotes[Input keterangan <br><i>(wajib)</i>]
+    InputNotes --> Save[Ubah status ke selesai/ditutup manual]
+    Save --> End([Selesai])
+```
+
+### 🔍 Catatan Verifikasi Alur & Keselarasan Kode Mockup
+
+1. **Sinkronisasi Desain vs Mockup (First Iteration):**
+   * Sesuai dengan batasan mockup saat ini, data durasi izin keluar dan persetujuan GPS sudah diisi langsung oleh user pada form pengajuan (sebelum disetujui Admin). Di production kelak, alur dapat diselaraskan dengan Diagram 4 di mana penentuan durasi dilakukan pasca-persetujuan agar waktu durasi tidak berkurang selama menunggu *approval* komandan.
+2. **Mitigasi GPS Terputus (Diagram 5 - State `s5`):**
+   * Penanganan state `GPS_Terputus` (seperti saat user mematikan GPS di tengah sesi) merupakan bagian penting yang diidentifikasi dalam flowchart. Pada iterasi ini, logika tersebut dirancang sebagai *business logic* yang wajib diimplementasikan pada backend production untuk mencegah celah manipulasi kehadiran.
+3. **Mekanisme OTP & Distribusi Kredensial:**
+   * Fitur Lupa Password (Diagram 2) dan Registrasi Admin (Diagram 6) masih berstatus simulasi/asumsi (*mock*) pada antarmuka frontend, dan akan membutuhkan integrasi dengan SMS/WhatsApp Gateway API untuk implementasi backend penuh.
+
 
 ---
 
