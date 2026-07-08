@@ -1,0 +1,6 @@
+{
+  "name": "NAYAKA",
+  "description": "Navigasi Administrasi Yudha Anggota Kesatuan Aktif - Portal Administrasi, Presensi Geofence, & Pelacakan Izin Keluar Brigif 87",
+  "requestFramePermissions": ["geolocation", "camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
