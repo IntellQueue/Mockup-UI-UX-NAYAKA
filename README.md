@@ -146,77 +146,77 @@ Bagian ini menyajikan 9 diagram alur logika utama yang memetakan seluruh sistem 
 ### 1. Diagram Alur: Login & Ganti Password
 ```mermaid
 graph TD
-    Start([Mulai]) --> Input[Input NRP & Password]
-    Input --> Valid{NRP & Password valid?}
-    Valid -- Tidak --> Err[Tampilkan pesan error]
+    Start([Mulai]) --> Input["Input NRP & Password"]
+    Input --> Valid{"NRP & Password valid?"}
+    Valid -- Tidak --> Err["Tampilkan pesan error"]
     Err --> Input
-    Valid -- Ya --> LogDevice[Catat device_id ke Device Log]
-    LogDevice --> Default{Password masih default?}
-    Default -- Ya --> ForceInput[Paksa input password baru]
-    ForceInput --> Policy{Password baru valid & sesuai kebijakan?}
+    Valid -- Ya --> LogDevice["Catat device_id ke Device Log"]
+    LogDevice --> Default{"Password masih default?"}
+    Default -- Ya --> ForceInput["Paksa input password baru"]
+    ForceInput --> Policy{"Password baru valid & sesuai kebijakan?"}
     Policy -- Tidak --> ForceInput
-    Policy -- Ya --> Save[Simpan password baru]
-    Save --> Home[Masuk ke Home]
+    Policy -- Ya --> Save["Simpan password baru"]
+    Save --> Home["Masuk ke Home"]
     Default -- Tidak --> Home
 ```
 
 ### 2. Diagram Alur: Lupa Password
 ```mermaid
 graph TD
-    Start([Mulai]) --> Input[Input NRP]
-    Input --> Reg{NRP terdaftar?}
-    Reg -- Tidak --> Err[Tampilkan error]
+    Start([Mulai]) --> Input["Input NRP"]
+    Input --> Reg{"NRP terdaftar?"}
+    Reg -- Tidak --> Err["Tampilkan error"]
     Err --> End([Selesai])
-    Reg -- Ya --> OTP[Kirim OTP ke no. HP terdaftar <br><i>[ASUMSI]</i>]
-    OTP --> InputOTP[Input OTP]
-    InputOTP --> OTPValid{OTP valid?}
+    Reg -- Ya --> OTP["Kirim OTP ke no. HP terdaftar (ASUMSI)"]
+    OTP --> InputOTP["Input OTP"]
+    InputOTP --> OTPValid{"OTP valid?"}
     OTPValid -- Tidak --> InputOTP
-    OTPValid -- Ya --> InputNew[Input password baru]
-    InputNew --> Save[Simpan password baru]
+    OTPValid -- Ya --> InputNew["Input password baru"]
+    InputNew --> Save["Simpan password baru"]
     Save --> End
 ```
 
 ### 3. Diagram Alur: Absensi QR
 ```mermaid
 graph TD
-    Start([Mulai Absensi]) --> Wifi{Terhubung WiFi gedung -<br>BSSID cocok?}
-    Wifi -- Tidak --> RejectWifi[Tolak: harus di area gedung]
+    Start([Mulai Absensi]) --> Wifi{"Terhubung WiFi gedung - BSSID cocok?"}
+    Wifi -- Tidak --> RejectWifi["Tolak: harus di area gedung"]
     RejectWifi --> End([Selesai])
-    Wifi -- Ya --> Scan[Scan QR Code <br><i>(rotating)</i>]
-    Scan --> QRValid{QR valid &<br>belum expired?}
-    QRValid -- Tidak --> RejectQR[Tolak: QR tidak valid / kadaluarsa]
+    Wifi -- Ya --> Scan["Scan QR Code (rotating)"]
+    Scan --> QRValid{"QR valid dan belum expired?"}
+    QRValid -- Tidak --> RejectQR["Tolak: QR tidak valid / kadaluarsa"]
     RejectQR --> End
-    QRValid -- Ya --> Liveness[Ambil foto <br><i>(liveness check)</i>]
-    Liveness --> Attest{Foto & device<br>attestation lolos?}
-    Attest -- Tidak --> RejectAttest[Tolak: gagal verifikasi <br><i>(cek batas retry)</i>]
+    QRValid -- Ya --> Liveness["Ambil foto (liveness check)"]
+    Liveness --> Attest{"Foto dan device attestation lolos?"}
+    Attest -- Tidak --> RejectAttest["Tolak: gagal verifikasi (cek batas retry)"]
     RejectAttest --> End
-    Attest -- Ya --> Save[Simpan data absensi:<br>foto, GPS, timestamp, BSSID]
+    Attest -- Ya --> Save["Simpan data absensi: foto, GPS, timestamp, BSSID"]
     Save --> End
 ```
 
 ### 4. Diagram Alur: Izin Istirahat-Jalan (dengan Tracking GPS)
 ```mermaid
 graph TD
-    Start([Mulai]) --> Form[Isi form izin: jenis, keterangan,<br>bukti foto/PDF]
-    Form --> Send[Kirim ke Admin]
-    Send --> Approve{Admin approve?}
-    Approve -- Tidak --> NotifReject[Notifikasi ditolak ke user]
+    Start([Mulai]) --> Form["Isi form izin: jenis, keterangan, bukti foto/PDF"]
+    Form --> Send["Kirim ke Admin"]
+    Send --> Approve{"Admin approve?"}
+    Approve -- Tidak --> NotifReject["Notifikasi ditolak ke user"]
     NotifReject --> End([Selesai])
-    Approve -- Ya --> ChooseDur[User pilih durasi<br><i>(kelipatan 30 menit s.d. 3 jam)</i>]
-    ChooseDur --> Consent[User setujui GPS always-on]
-    Consent --> StartTrack[Mulai tracking GPS kontinu]
-    StartTrack --> CheckTime{Sisa waktu = 15/10/5/1 menit?<br><i>(server-side scheduler)</i>}
-    CheckTime -- Ya --> SendCountdown[Kirim notifikasi countdown]
+    Approve -- Ya --> ChooseDur["User pilih durasi (kelipatan 30 menit s.d. 3 jam)"]
+    ChooseDur --> Consent["User setujui GPS always-on"]
+    Consent --> StartTrack["Mulai tracking GPS kontinu"]
+    StartTrack --> CheckTime{"Sisa waktu = 15/10/5/1 menit? (server-side scheduler)"}
+    CheckTime -- Ya --> SendCountdown["Kirim notifikasi countdown"]
     SendCountdown --> CheckReturn
-    CheckTime -- Tidak / belum waktunya --> CheckReturn{User sudah kembali ke gedung?}
-    CheckReturn -- Ya, sebelum durasi habis --> RequestApproval[User request approval kembali]
-    RequestApproval --> ScanReturn[Scan QR + foto bukti kembali<br><i>(sama seperti absensi)</i>]
-    ScanReturn --> Verify{Verifikasi lolos?}
+    CheckTime -- Tidak / belum waktunya --> CheckReturn{"User sudah kembali ke gedung?"}
+    CheckReturn -- Ya, sebelum durasi habis --> RequestApproval["User request approval kembali"]
+    RequestApproval --> ScanReturn["Scan QR + foto bukti kembali (sama seperti absensi)"]
+    ScanReturn --> Verify{"Verifikasi lolos?"}
     Verify -- Tidak --> ScanReturn
-    Verify -- Ya --> Completed[Status: Completed, stop tracking]
+    Verify -- Ya --> Completed["Status: Completed, stop tracking"]
     Completed --> End
-    CheckReturn -- Tidak, durasi habis --> Overdue[Durasi habis, belum kembali]
-    Overdue --> StatusOverdue[Status: Overdue +<br>Eskalasi alert ke admin <i>[ASUMSI]</i>]
+    CheckReturn -- Tidak, durasi habis --> Overdue["Durasi habis, belum kembali"]
+    Overdue --> StatusOverdue["Status: Overdue + Eskalasi alert ke admin (ASUMSI)"]
     StatusOverdue --> End
 ```
 
@@ -236,7 +236,7 @@ stateDiagram-v2
     
     Tracking_Aktif --> GPS_Terputus : user cabut izin lokasi
     GPS_Terputus --> Tracking_Aktif : user aktifkan lagi sebelum durasi habis
-    GPS_Terputus --> Dieskalasi : tidak diaktifkan lagi [ASUMSI: eskalasi langsung]
+    GPS_Terputus --> Dieskalasi : tidak diaktifkan lagi (ASUMSI: eskalasi langsung)
     
     Tracking_Aktif --> Menunggu_Verifikasi : user request kembali, sebelum durasi habis
     Menunggu_Verifikasi --> Menunggu_Verifikasi : verifikasi gagal (retry)
@@ -253,49 +253,49 @@ stateDiagram-v2
 ### 6. Diagram Alur: Registrasi User oleh Admin
 ```mermaid
 graph TD
-    Start([Mulai]) --> Input[Admin input data: NRP, Nama KTP,<br>Nama Kesatuan, Alamat, No. HP]
-    Input --> Reg{NRP sudah terdaftar?}
-    Reg -- Ya --> ErrReg[Tampilkan error: NRP duplikat]
+    Start([Mulai]) --> Input["Admin input data: NRP, Nama KTP, Nama Kesatuan, Alamat, No. HP"]
+    Input --> Reg{"NRP sudah terdaftar?"}
+    Reg -- Ya --> ErrReg["Tampilkan error: NRP duplikat"]
     ErrReg --> Input
-    Reg -- Tidak --> ValidateHP{Validasi format No. HP &<br>kelengkapan data?}
-    ValidateHP -- Tidak valid --> ErrValidate[Tampilkan error field tidak valid]
+    Reg -- Tidak --> ValidateHP{"Validasi format No. HP dan kelengkapan data?"}
+    ValidateHP -- Tidak valid --> ErrValidate["Tampilkan error field tidak valid"]
     ErrValidate --> Input
-    ValidateHP -- Valid --> GeneratePass[Generate password default acak<br><i>[FIX: mencegah predictable password]</i>]
-    GeneratePass --> Save[Simpan data user ke database<br>set is_default_password = true]
-    Save --> SendSMS[Kirim NRP + password default<br>ke No. HP terdaftar (SMS)<br><i>[ASUMSI: metode distribusi kredensial]</i>]
+    ValidateHP -- Valid --> GeneratePass["Generate password default acak (mencegah predictable password)"]
+    GeneratePass --> Save["Simpan data user ke database (set is_default_password = true)"]
+    Save --> SendSMS["Kirim NRP + password default ke No. HP terdaftar (SMS) (ASUMSI: metode distribusi kredensial)"]
     SendSMS --> End([Selesai])
 ```
 
 ### 7. Diagram Alur: Izin Ketidakhadiran (Tanpa Tracking)
 ```mermaid
 graph TD
-    Start([Mulai]) --> Choose[Pilih jenis: Sakit / Izin / Musibah]
-    Choose --> Fill[Isi keterangan & rentang tanggal]
-    Fill --> Upload[Unggah bukti foto / PDF]
-    Upload --> Proof{Bukti wajib & terisi?}
-    Proof -- Tidak --> ErrProof[Tampilkan error: bukti wajib diisi]
+    Start([Mulai]) --> Choose["Pilih jenis: Sakit / Izin / Musibah"]
+    Choose --> Fill["Isi keterangan & rentang tanggal"]
+    Fill --> Upload["Unggah bukti foto / PDF"]
+    Upload --> Proof{"Bukti wajib & terisi?"}
+    Proof -- Tidak --> ErrProof["Tampilkan error: bukti wajib diisi"]
     ErrProof --> Upload
-    Proof -- Ya --> Send[Kirim ke Admin]
-    Send --> Approve{Admin approve?}
-    Approve -- Tidak --> Reject[Reject + input alasan wajib]
+    Proof -- Ya --> Send["Kirim ke Admin"]
+    Send --> Approve{"Admin approve?"}
+    Approve -- Tidak --> Reject["Reject + input alasan wajib"]
     Reject --> End([Selesai])
-    Approve -- Ya --> Save[Catat: Disetujui — Tanpa Tracking<br>Update rekap kehadiran]
+    Approve -- Ya --> Save["Catat: Disetujui — Tanpa Tracking (Update rekap kehadiran)"]
     Save --> End
 ```
 
 ### 8. Diagram Alur: Admin - Review Keputusan Izin
 ```mermaid
 graph TD
-    Start([Mulai - Admin buka daftar pengajuan pending]) --> Choose[Pilih satu pengajuan, lihat detail & bukti]
-    Choose --> Type{Jenis = Ketidakhadiran<br>sakit/izin/musibah?}
-    Type -- Ya --> ShowAbsence[Tampilkan opsi: Approve / Reject<br><i>(tanpa setting durasi)</i>]
-    Type -- Tidak --> ShowOuting[Tampilkan opsi: Approve / Reject<br><i>(approve = user boleh pilih durasi)</i>]
-    ShowAbsence --> Decide[Admin pilih keputusan]
+    Start([Mulai - Admin buka daftar pengajuan pending]) --> Choose["Pilih satu pengajuan, lihat detail & bukti"]
+    Choose --> Type{"Jenis = Ketidakhadiran (sakit/izin/musibah)?"}
+    Type -- Ya --> ShowAbsence["Tampilkan opsi: Approve / Reject (tanpa setting durasi)"]
+    Type -- Tidak --> ShowOuting["Tampilkan opsi: Approve / Reject (approve = user boleh pilih durasi)"]
+    ShowAbsence --> Decide["Admin pilih keputusan"]
     ShowOuting --> Decide
-    Decide --> Reject{Reject?}
-    Reject -- Ya --> InputReject[Input alasan penolakan <br><i>(wajib)</i>]
-    Reject -- No --> InputApprove[Input catatan <br><i>(opsional)</i>]
-    InputReject --> Save[Simpan keputusan, kirim notifikasi ke user]
+    Decide --> Reject{"Reject?"}
+    Reject -- Ya --> InputReject["Input alasan penolakan (wajib)"]
+    Reject -- No --> InputApprove["Input catatan (opsional)"]
+    InputReject --> Save["Simpan keputusan, kirim notifikasi ke user"]
     InputApprove --> Save
     Save --> End([Selesai])
 ```
@@ -303,17 +303,17 @@ graph TD
 ### 9. Diagram Alur: Admin - Monitoring Tracking GPS
 ```mermaid
 graph TD
-    Start([Mulai - Admin buka menu Monitoring]) --> ShowList[Tampilkan daftar user berstatus<br>'Tracking Aktif']
-    ShowList --> Select[Admin pilih salah satu user]
-    Select --> ShowDetails[Tampilkan peta lokasi terakhir,<br>waktu update, sisa durasi]
-    ShowDetails --> Overdue{Sisa durasi = 0 &<br>belum ada bukti kembali?}
-    Overdue -- Tidak --> Refresh[Auto-refresh berkala,<br>tetap di layar monitoring]
+    Start([Mulai - Admin buka menu Monitoring]) --> ShowList["Tampilkan daftar user berstatus 'Tracking Aktif'"]
+    ShowList --> Select["Admin pilih salah satu user"]
+    Select --> ShowDetails["Tampilkan peta lokasi terakhir, waktu update, sisa durasi"]
+    ShowDetails --> Overdue{"Sisa durasi = 0 dan belum ada bukti kembali?"}
+    Overdue -- Tidak --> Refresh["Auto-refresh berkala, tetap di layar monitoring"]
     Refresh --> ShowDetails
-    Overdue -- Ya --> Highlight[Highlight sebagai 'Overdue'.<br>Tampilkan aksi: Hubungi user / Tutup manual]
-    Highlight --> ManualClose{Admin pilih 'Tutup manual'?}
+    Overdue -- Ya --> Highlight["Highlight sebagai Overdue. Tampilkan aksi: Hubungi user / Tutup manual"]
+    Highlight --> ManualClose{"Admin pilih 'Tutup manual'?"}
     ManualClose -- Tidak --> ShowList
-    ManualClose -- Ya --> InputNotes[Input keterangan <br><i>(wajib)</i>]
-    InputNotes --> Save[Ubah status ke selesai/ditutup manual]
+    ManualClose -- Ya --> InputNotes["Input keterangan (wajib)"]
+    InputNotes --> Save["Ubah status ke selesai/ditutup manual"]
     Save --> End([Selesai])
 ```
 
