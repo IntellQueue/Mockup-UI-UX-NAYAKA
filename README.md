@@ -146,14 +146,14 @@ Bagian ini menyajikan 9 diagram alur logika utama yang memetakan seluruh sistem 
 ### 1. Diagram Alur: Login & Ganti Password
 ```mermaid
 graph TD
-    Start([Mulai]) --> Input["Input NRP & Password"]
-    Input --> Valid{"NRP & Password valid?"}
+    Start([Mulai]) --> Input["Input NRP dan Password"]
+    Input --> Valid{"NRP dan Password valid?"}
     Valid -- Tidak --> Err["Tampilkan pesan error"]
     Err --> Input
     Valid -- Ya --> LogDevice["Catat device_id ke Device Log"]
     LogDevice --> Default{"Password masih default?"}
     Default -- Ya --> ForceInput["Paksa input password baru"]
-    ForceInput --> Policy{"Password baru valid & sesuai kebijakan?"}
+    ForceInput --> Policy{"Password baru valid dan sesuai kebijakan?"}
     Policy -- Tidak --> ForceInput
     Policy -- Ya --> Save["Simpan password baru"]
     Save --> Home["Masuk ke Home"]
@@ -236,7 +236,7 @@ stateDiagram-v2
     
     Tracking_Aktif --> GPS_Terputus : user cabut izin lokasi
     GPS_Terputus --> Tracking_Aktif : user aktifkan lagi sebelum durasi habis
-    GPS_Terputus --> Dieskalasi : tidak diaktifkan lagi (ASUMSI: eskalasi langsung)
+    GPS_Terputus --> Dieskalasi : tidak diaktifkan lagi (ASUMSI - eskalasi langsung)
     
     Tracking_Aktif --> Menunggu_Verifikasi : user request kembali, sebelum durasi habis
     Menunggu_Verifikasi --> Menunggu_Verifikasi : verifikasi gagal (retry)
@@ -272,7 +272,7 @@ graph TD
     Start([Mulai]) --> Choose["Pilih jenis: Sakit / Izin / Musibah"]
     Choose --> Fill["Isi keterangan & rentang tanggal"]
     Fill --> Upload["Unggah bukti foto / PDF"]
-    Upload --> Proof{"Bukti wajib & terisi?"}
+    Upload --> Proof{"Bukti wajib dan terisi?"}
     Proof -- Tidak --> ErrProof["Tampilkan error: bukti wajib diisi"]
     ErrProof --> Upload
     Proof -- Ya --> Send["Kirim ke Admin"]
